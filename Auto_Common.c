@@ -12,6 +12,7 @@
 #include "CimRs232.h"
 #include "CimSeqnc.h"
 #include "Kutlstr.h"
+
 #include "Parameter.h"
 #include "parson.h"
 #include "Auto_Common.h"
@@ -25,20 +26,21 @@ BOOL gbEndSignal = FALSE;
 
 typedef struct {
 	int Check_Serial;
-	TCHAR Check_Result[50];
+	TCHAR Check_Result[128];
 }Check_Serial;
 
 typedef struct {
 	int Result;
-	char RcvData[50];
+	char RcvData[128];
 	int DataLen;
 }Req_Data;
+
+
 //문자열을 전달받아 '$'를 의 개수를 리턴해준다.
 int Find_Tag_Char(TCHAR* Data)
 {
 	int len, i, cnt = 0;
 	len = lstrlen(Data);
-
 	for (i = 0; i < len; i++)
 	{
 		if (Data[i] == '$') cnt++;
@@ -117,7 +119,7 @@ void Data_Logging(int Control, int Logging_Style) {
 	if (Control == FALSE) RS232_Logging_Control(FALSE);
 	else {
 		GetLocalTime(&st);
-		sprintf(FileName, "Datalog/%04d%02d%02d%02d.log", st.wYear, st.wMonth, st.wDay, st.wHour);
+		sprintf(FileName, "%04d%02d%02d%02d_RS232.log", st.wYear, st.wMonth, st.wDay, st.wHour);
 		RS232_Logging_Style(Logging_Style, FileName);
 		RS232_Logging_Control(TRUE);
 	}
@@ -128,17 +130,30 @@ void TCHAR_TO_CHAR(TCHAR* tchardata, char* chardata, int size) {
 }
 //CHAR 문자열을 TCHAR문자열로 변환해준다.
 void CHAR_TO_TCHAR(char* chardata, TCHAR* tchardata, int size) {
-	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, chardata, 50, tchardata, 50);
+	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, chardata, size, tchardata, size);
+}
+void CHAR_TO_TCHAR2(char* chardata, int charsize , TCHAR* tchardata) {
+	int charbuf, i;
+
+	if (charsize <= 0) return;
+
+	
+	for (i = 0; i < charsize; i++) {
+		charbuf = chardata[i];
+		tchardata[i] = charbuf;
+		
+	}
+		
 }
 void CHAR_TO_LOGBUUFER(char* chardata, char* logdata, int size) {
 	int i,j;
 	for (i = 0,j=0; i < size; i++) {
 		if (chardata[i] == '\0') {
-			strcpy(logdata+j, "[NULL]");
+			snprintf(logdata+j,size-j, "[NULL]");
 			j += 6;
 		}
 		else {
-			logdata[i] = chardata[j];
+			logdata[j] = chardata[i];
 			j++;
 		}
 	}
@@ -180,7 +195,7 @@ void Edit_Print_Log(TCHAR* Type, TCHAR* RcvData)
 
 }
 //송수신 결과를 나타낼 RX/TX Type과 송수신에 사용된 문자열을 전달받아 통신로그 창에 출력한다.
-void Edit_Print_RXTX(TCHAR* Type, TCHAR* RcvData)
+void Edit_Print_RX(TCHAR* Type, TCHAR* RcvData)
 {
 	int nLen = -1, i = -1;
 	TCHAR PrintVal[128];
@@ -188,7 +203,7 @@ void Edit_Print_RXTX(TCHAR* Type, TCHAR* RcvData)
 
 	memset(PrintVal, 0x00, sizeof(PrintVal) - 1);
 	memset(Temp, 0x00, sizeof(Temp) - 1);
-	switch (g_TX_PrintType) 
+	switch (g_RX_PrintType) 
 	{
 	case 0:
 		_sntprintf(PrintVal, sizeof(PrintVal), Type);
@@ -196,6 +211,9 @@ void Edit_Print_RXTX(TCHAR* Type, TCHAR* RcvData)
 		TX_History_Save(PrintVal);
 		nLen = GetWindowTextLength(hEdit_RXTX);
 		Logging(Type, PrintVal);
+		if (g_RX_CfgNo == 3) {
+			if (lstrlen(TermStr[g_TX_CfgNo]) <= 0) lstrcat(PrintVal, TEXT("[NULL]"));
+		}
 		lstrcat(PrintVal, TEXT("\r\n"));
 		SendMessage(hEdit_RXTX, EM_SETSEL, nLen, nLen);
 		SendMessage(hEdit_RXTX, EM_REPLACESEL, FALSE, (LPARAM)PrintVal);
@@ -204,7 +222,7 @@ void Edit_Print_RXTX(TCHAR* Type, TCHAR* RcvData)
 		break;
 	case 1:
 		_sntprintf(PrintVal, sizeof(PrintVal), Type);
-		for (i = 0; i < 16; i++) 
+		for (i = 0; i < 128; i++) 
 		{
 			_sntprintf(Temp, sizeof(Temp), TEXT("%02x "), RcvData[i]);
 			if (RcvData[i] == '\0') break;
@@ -213,6 +231,9 @@ void Edit_Print_RXTX(TCHAR* Type, TCHAR* RcvData)
 		TX_History_Save(PrintVal);
 		Logging(Type, PrintVal);
 		nLen = GetWindowTextLength(hEdit_RXTX);
+		if (g_RX_CfgNo == 3) {
+			if (lstrlen(TermStr[g_TX_CfgNo]) <= 0) lstrcat(PrintVal, TEXT("[NULL]"));
+		}
 		lstrcat(PrintVal, TEXT("\r\n"));
 		SendMessage(hEdit_RXTX, EM_SETSEL, nLen, nLen);
 		SendMessage(hEdit_RXTX, EM_REPLACESEL, FALSE, (LPARAM)PrintVal);
@@ -223,6 +244,57 @@ void Edit_Print_RXTX(TCHAR* Type, TCHAR* RcvData)
 
 
 }
+
+void Edit_Print_TX(TCHAR* Type, TCHAR* RcvData)
+{
+	int nLen = -1, i = -1;
+	TCHAR PrintVal[128];
+	TCHAR Temp[128];
+
+	memset(PrintVal, 0x00, sizeof(PrintVal) - 1);
+	memset(Temp, 0x00, sizeof(Temp) - 1);
+	switch (g_TX_PrintType)
+	{
+	case 0:
+		_sntprintf(PrintVal, sizeof(PrintVal), Type);
+		lstrcat(PrintVal, RcvData);
+		TX_History_Save(PrintVal);
+		nLen = GetWindowTextLength(hEdit_RXTX);
+		Logging(Type, PrintVal);
+		if (g_TX_CfgNo == 4) {
+			if (lstrlen(TermStr[g_TX_CfgNo]) <= 0) lstrcat(PrintVal, TEXT("[NULL]"));
+		}
+		lstrcat(PrintVal, TEXT("\r\n"));
+		SendMessage(hEdit_RXTX, EM_SETSEL, nLen, nLen);
+		SendMessage(hEdit_RXTX, EM_REPLACESEL, FALSE, (LPARAM)PrintVal);
+		if (_tcscmp(Type, RXTX_TYPE[Tx]) == 0)SetWindowText(hEdit_TX_SEND, TEXT(""));
+
+		break;
+	case 1:
+		_sntprintf(PrintVal, sizeof(PrintVal), Type);
+		for (i = 0; i < 16; i++)
+		{
+			_sntprintf(Temp, sizeof(Temp), TEXT("%02x "), RcvData[i]);
+			if (RcvData[i] == '\0') break;
+			lstrcat(PrintVal, Temp);
+		}
+		TX_History_Save(PrintVal);
+		Logging(Type, PrintVal);
+		nLen = GetWindowTextLength(hEdit_RXTX);
+		if (g_TX_CfgNo == 4) {
+			if (lstrlen(TermStr[g_TX_CfgNo]) <= 0) lstrcat(PrintVal, TEXT("[NULL]"));
+		}
+		lstrcat(PrintVal, TEXT("\r\n"));
+		SendMessage(hEdit_RXTX, EM_SETSEL, nLen, nLen);
+		SendMessage(hEdit_RXTX, EM_REPLACESEL, FALSE, (LPARAM)PrintVal);
+
+		if (_tcscmp(Type, RXTX_TYPE[Tx]) == 0)SetWindowText(hEdit_TX_SEND, TEXT(""));
+		break;
+	}
+
+
+}
+
 //활성화 유/무를 전달받아 RS232 or TCP/IP 통신 연결상태에 따라 Modaless/Main Item을 활성화/비활성화 해준다.
 void Disable_Button(BOOL Check) 
 {
@@ -236,6 +308,24 @@ void Disable_Button(BOOL Check)
 	EnableWindow(hCombo_Parity, Check);
 	EnableWindow(hCombo_Stop, Check);
 	EnableWindow(hEdit_Port, Check);
+	EnableWindow(hRadio_Mode_Common, Check);
+	EnableWindow(hRadio_Mode_Secs, Check);
+	if (giMode == 1) {
+		EnableWindow(hRadio_RXCfg_CR, Check);
+		EnableWindow(hRadio_RXCfg_LF, Check);
+		EnableWindow(hRadio_RXCfg_CRLF, Check);
+		EnableWindow(hRadio_RXCfg_etc, Check);
+		EnableWindow(hEdit_RXCfg_etc, Check);
+		EnableWindow(hButton_RXETC, Check);
+		EnableWindow(hRadio_TXCfg_CR, Check);
+		EnableWindow(hRadio_TXCfg_LF, Check);
+		EnableWindow(hRadio_TXCfg_CRLF, Check);
+		EnableWindow(hRadio_TXCfg_etc, Check);
+		EnableWindow(hEdit_TXCfg_etc, Check);
+		EnableWindow(hButton_TXETC, Check);
+
+
+	}
 
 }
 
@@ -345,51 +435,55 @@ int NumberOfvBar(TCHAR* Data)
 	return Cnt;
 }
 //ini File을 Load/Save 할때 Initialize 해준다.
-BOOL SerialInitialize(HWND hDlg) 
+BOOL SerialInitialize( TCHAR* FileNameStr) 
 {
 	TCHAR RecvTag[16];
 	BOOL bStepEndFind = FALSE;
+	TCHAR FilePath[MAX_PATH];
 	FILE* fp = _tfopen(gszFileTitle, TEXT("r+"));
 	TCHAR buffer[256];
 	TCHAR buffer2[256];
 	TCHAR pszbuf[256];
 	TCHAR pszSend[256];
-	char FileTitle[256];
+	char FileTitle[MAX_PATH];
 	char charBuffer[256];
 	TCHAR tcharBuffer[256];
 	int i = 0, j = 0;
 	int NumOfTag = -1, NumOfvBar = -1, DelCnt = -1;
+
 	JSON_Object *cmd;
 	JSON_Value *rootValue;
 	JSON_Object *rootObject;
 	JSON_Array *array1;
 	JSON_Array *array2;
-
+	
+	memset(FilePath, 0, MAX_PATH);
 	memset(pszbuf, 0, sizeof(pszbuf));
 	memset(buffer, 0, sizeof(buffer));
 	memset(buffer2, 0, sizeof(buffer2));
 	memset(FileTitle, 0, sizeof(FileTitle));
 	memset(pszSend, 0, sizeof(pszSend));
-	memset(g_Cfg, 0, sizeof(g_Cfg));
 	memset(RecvTag, 0, sizeof(RecvTag));
 	memset(charBuffer, 0, sizeof(charBuffer));
 	memset(tcharBuffer, 0, sizeof(tcharBuffer));
+	memset(g_Cfg, 0, sizeof(Cfg)*64);
+	memset(Tag, 0, sizeof(Tag));
+	lstrcpy(FilePath, FileNameStr);
 
-	TCHAR_TO_CHAR(glpstrFile, FileTitle, 256);
+	TCHAR_TO_CHAR(FileNameStr, FileTitle, MAX_PATH);
 	rootValue = json_parse_file(FileTitle);
 	rootObject = json_value_get_object(rootValue);
 	array1 = json_object_get_array(rootObject, "COMMAND");
-	for (j = 0; j < 128; j++) 
+	/*for (j = 0; j < 128; j++) 
 	{
-		_sntprintf(Tag[j], sizeof(Tag[j]), TEXT("0"));
-	}
-	for (j = 0; j < 64; j++) {
-		g_Cfg[i].SendIdx = 0;
-		g_Cfg[i].UseYN = FALSE;
-	}
-	for (unsigned  i = 0; i < json_array_get_count(array1); i++)     // 배열의 요소 개수만큼 반복
+		_sntprintf(Tag[j], 255, TEXT("0"));
+	}*/
+
+
+	for (i = 0; i < ((int) json_array_get_count(array1)) ; i++)     // 배열의 요소 개수만큼 반복
 	{
 		cmd = json_array_get_object(array1, i);
+		if (strlen(json_object_get_string(cmd, "Type")) <= 0)continue;
 		_snprintf(charBuffer, sizeof (charBuffer) , json_object_get_string(cmd, "Type"));
 		CHAR_TO_TCHAR(charBuffer, tcharBuffer, 256);
 		_sntprintf(g_Cfg[i].Type, sizeof(g_Cfg[i].Type), tcharBuffer);
@@ -400,7 +494,7 @@ BOOL SerialInitialize(HWND hDlg)
 		if (NumOfTag) STR_SEP_CHAR(g_Cfg[i].Receive, '$', g_Cfg[i].RX_Comp, RecvTag, lstrlen(g_Cfg[i].Receive));
 		
 		array2 = json_object_get_array(cmd, "SEND");
-		for (unsigned j = 0; j < json_array_get_count(array2); j++)
+		for ( j = 0; j < ((int) json_array_get_count(array2)); j++)
 		{
 			_snprintf(charBuffer, sizeof(charBuffer), json_array_get_string(array2, j));
 			CHAR_TO_TCHAR(charBuffer, tcharBuffer, 256);
@@ -506,8 +600,10 @@ void SaveSerialSetting()
 void SerialDelete(int SendStep ,int idx , int Type) 
 {
 	int i = -1, j, k;
-	lstrcpy(Save_Serial[idx], TEXT(""));
 	Cfg TempBuf[64];
+
+	lstrcpy(Save_Serial[idx], TEXT(""));
+
 	switch (Type) {
 		case 1:
 			for (i = 0, j = 0; i < Max_Cfg_No; i++)
@@ -558,7 +654,7 @@ void SerialDelete(int SendStep ,int idx , int Type)
 				}*/
 			
 		case 2:
-			for (j = idx; j <8 ; j++) {
+			for (j = idx; j <7 ; j++) {
 				g_Cfg[SendStep].Send[j].index = g_Cfg[SendStep].Send[j+1].index;
 				lstrcpy(g_Cfg[SendStep].Send[j].Response, g_Cfg[SendStep].Send[j+1].Response);
 				g_Cfg[SendStep].Send[j].Delay = g_Cfg[SendStep].Send[j+1].Delay;
@@ -783,52 +879,130 @@ BOOL Rs232_IO_Send(char *Cmnds , TCHAR* TermStr) {
 			return FALSE;
 		}
 	}
-	if ( TermStr[0] == 0x00 ) RS232_Write_Char('\0');
+	
+	if (TermStr[0] == 0x00) {
+		RS232_Write_Char('\0');
+	}
+	return TRUE;
+}
+BOOL Rs232_IO_Send_Secs(char* Cmnds) {
+	unsigned int i;
+
+	for (i = 0; i < strlen(Cmnds); i++) {
+		if (!RS232_Write_Char(Cmnds[i])) {
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+BOOL Send_Terminate( char* szData, int iCnt)
+{
+	int i;
+	for (i = 0; i < 128; i++) {
+		if ( strcmp( szData+i , TermStr_CH[g_RX_CfgNo]) == 0 ) {
+			if (strcmp(TermStr_CH[g_RX_CfgNo], "") == 0) {
+				if (strcmp(szData + iCnt, TermStr_CH[g_RX_CfgNo]) == 0) {
+					return TRUE;
+				}
+				return FALSE;
+			}
+			else {
+				*(szData + iCnt) = '\0';
+			}
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+BOOL Rs232_IO_Receive_Secs(char* Response, int* ItemCnt) {
+	BOOL bResult = FALSE;
+	char ch;
+	int iCnt = 0, iLen = -1 ,i;
+	bResult = RS232_Read_Char(&ch);
+	if (bResult == FALSE)	return FALSE;
+
+	switch (ch) {
+	case 0x04:
+	case 0x05:
+	case 0x06:
+	case 0x15:
+		Response[iCnt++] = ch;
+		*ItemCnt = iCnt;
+		return TRUE;
+	default:
+		Response[iCnt++] = ch;
+		iLen = ch;
+		break;
+	}
+	if (iLen <= 0) return FALSE;
+	for (i = 0; i < iLen; i++) {
+		bResult = RS232_Read_Char(&ch);
+		if (bResult == FALSE) return FALSE;
+		Response[iCnt++] = ch;
+	}
+	*ItemCnt = iCnt;
 	return TRUE;
 }
 
 BOOL Rs232_IO_Receive(char *Response, int* ItemCnt ) {
 	BOOL bResult = FALSE;
 	char ch;
-	FILE *fpt;
+	int i = 0,j=0,k=0, icnt = 0 ;
 
-	fpt = fopen("CHECK", "a");
-	int i = 0,j=0,k=0;
 	
 	bResult = RS232_Read_Char(&ch);
-	
-	if (bResult) {
-		*Response = ch;
-		i++;
-		fprintf(fpt, "%c\n", ch);
-		fclose(fpt);
-		while (TRUE) {
-			bResult = RS232_Read_Char(&ch);
-			if (bResult) {
-				fprintf(fpt, "%c\n", ch);
-				*(Response + i) = ch;
-				*ItemCnt = i;
-				i++;
-				for (j = 0 ; j < 50; j++) {
-					if (strcmp(Response + j, TermStr_CH[g_RX_CfgNo]) == 0) {
-						*(Response + j) = '\0';
-						fclose(fpt);
-						return TRUE;
-					}
-				}
-			}
-			else break;
-			Sleep(1);
-		}
-		fclose(fpt);
-		return FALSE;
-	}
-	
-	else {
-		fclose(fpt);
-		return FALSE;
-	}
+	if (bResult == FALSE)	return FALSE;
 
+	do
+	{
+		if (bResult)
+		{
+			Response[icnt] = ch;
+			if (Send_Terminate(Response, icnt)) {
+				break;
+			}
+			icnt++;
+		}
+
+		bResult = RS232_Read_Char(&ch);
+	} while( TRUE );
+
+	
+	
+
+	
+	//if (bResult) {
+	//	*Response = ch;
+	//	i++;
+	//	//fprintf(fpt, "%c\n", ch);
+	//	//fclose(fpt);
+	//	while (TRUE) {
+	//		bResult = RS232_Read_Char(&ch);
+	//		if (bResult) {
+	//			//fprintf(fpt, "%c\n", ch);
+	//			*(Response + i) = ch;
+	//			*ItemCnt = i;
+	//			i++;
+	//			for (j = 0 ; j < 50; j++) {
+	//				if (strcmp(Response + j, TermStr_CH[g_RX_CfgNo]) == 0) {
+	//					*(Response + j) = '\0';
+	//					//fclose(fpt);
+	//					return TRUE;
+	//				}
+	//			}
+	//		}
+	//		else break;
+	//		Sleep(1);
+	//	}
+	//	return FALSE;
+	//}
+	//else {
+	//	//fclose(fpt);
+	//	return FALSE;
+	//}
+	*ItemCnt = icnt;
+	return TRUE;
 }
 
 
@@ -837,36 +1011,47 @@ void Response_Part_Thread(void* p) {
 	int res;
 	int i;
 	int Match_Serial = giMatch_Serial;
-	char SendData[50];
-	TCHAR SendData2[50];
+	char SendData[128];
+	TCHAR SendData2[128];
 	
-	memset(SendData, 0x00, 50);
-	memset(SendData2, 0x00, 50);
+	memset(SendData, 0x00, 128);
+	memset(SendData2, 0x00, 128);
 	for (i = 0; i < g_Cfg[Match_Serial].SendCnt; i++) {
 		Sleep(g_Cfg[Match_Serial].Send[i].Delay);
 		if (Check_Res->Check_Serial == 1)
 		{
 			if (_tcsnccmp(g_Cfg[Match_Serial].Type, TEXT("BINARY"), lstrlen(TEXT("BINARY"))) == 0) _sntprintf(SendData2, sizeof(SendData), TEXT("%s"), Convert_BINARY_to_ASCII(g_Cfg[Match_Serial].Send[i].Response));
 			else if (_tcsnccmp(g_Cfg[Match_Serial].Type, TEXT("ASCII"), lstrlen(TEXT("ASCII"))) == 0) _sntprintf(SendData2, sizeof(SendData), g_Cfg[Match_Serial].Send[i].Response);
+			switch (giMode) {
+			case 0:		//Common 
+				Edit_Print_TX(RXTX_TYPE[Tx], SendData2);
+				lstrcat(SendData2, TermStr[g_TX_CfgNo]);
+				WideCharToMultiByte(CP_ACP, 0, SendData2, 128, SendData, 128, NULL, NULL);
+				//res = RS232_Write_String(SendData, strlen(SendData));
 
-			Edit_Print_RXTX(RXTX_TYPE[Tx], SendData2);
-			lstrcat(SendData2, TermStr[g_TX_CfgNo]);
-			WideCharToMultiByte(CP_ACP, 0, SendData2, 50, SendData, 50, NULL, NULL);
-			//res = RS232_Write_String(SendData, strlen(SendData));
-			
-			res = Rs232_IO_Send(SendData , TermStr[g_TX_CfgNo]);
-			
-			/*else {
-				res = RS232_Write_String(SendData, strlen(SendData));
-			}*/
-			if (!res) 	return;
+				res = Rs232_IO_Send(SendData, TermStr[g_TX_CfgNo]);
+
+
+				/*else {
+					res = RS232_Write_String(SendData, strlen(SendData));
+				}*/
+				if (!res) 	return;
+				break;
+			case 1:
+				Edit_Print_TX(RXTX_TYPE[Tx], SendData2);
+				WideCharToMultiByte(CP_ACP, 0, SendData2, 128, SendData, 128, NULL, NULL);
+				res = Rs232_IO_Send_Secs(SendData);
+				if (!res) 	return;
+				break;
+			}
+
 		}
 		else if (Check_Res->Check_Serial == 2)
 		{
 			_sntprintf(SendData2, sizeof(SendData2), Check_Res->Check_Result);
-			Edit_Print_RXTX(RXTX_TYPE[Tx], SendData2);
+			Edit_Print_TX(RXTX_TYPE[Tx], SendData2);
 			lstrcat(SendData2, TermStr[g_TX_CfgNo]);
-			WideCharToMultiByte(CP_ACP, 0, SendData2, 50, SendData, 50, NULL, NULL);
+			WideCharToMultiByte(CP_ACP, 0, SendData2, 128, SendData, 128, NULL, NULL);
 			//
 			res = Rs232_IO_Send(SendData,TermStr[g_TX_CfgNo]);
 			//else {
@@ -907,29 +1092,29 @@ void Response_Part_Thread(void* p) {
 void PRINT_LOG_AFTER_REQUEST(void* p) {
 	Req_Data* Temp = (Req_Data*)p;
 	Check_Serial* ChkSerial;
-	TCHAR RcvData2[50];
-	char LogBuffer[50];
-	TCHAR LogBuffer2[50];
+	TCHAR RcvData2[128];
+	char LogBuffer[128];
+	TCHAR LogBuffer2[128];
 
 	
 	ChkSerial = (Check_Serial *)malloc(sizeof(Check_Serial));
-	CHAR_TO_TCHAR(Temp->RcvData, RcvData2, 50);
+	CHAR_TO_TCHAR(Temp->RcvData, RcvData2, 128);
 	CHAR_TO_LOGBUUFER(Temp->RcvData, LogBuffer, Temp->DataLen);
-	CHAR_TO_TCHAR(LogBuffer, LogBuffer2, 50);
+	CHAR_TO_TCHAR(LogBuffer, LogBuffer2, 128);
 	if (!Temp->Result)
 	{
 
 		if (strlen(Temp->RcvData) > 0)
 		{
-			if (strncmp(LogBuffer, "[NULL]", 6)) Edit_Print_RXTX(RXTX_TYPE[Rx], LogBuffer2);
+			if (strncmp(LogBuffer, "[NULL]", 6)) Edit_Print_RX(RXTX_TYPE[Rx], LogBuffer2);
 		}
 
 	}
 	if (Temp->Result)
 	{
-		Edit_Print_RXTX(RXTX_TYPE[Rx], LogBuffer2);
+		Edit_Print_RX(RXTX_TYPE[Rx], LogBuffer2);
 		//i_CheckSerial = SerialCheck(RcvData2, CheckResult);
-		memset(ChkSerial->Check_Result, 0, sizeof(ChkSerial->Check_Result));
+		memset(ChkSerial->Check_Result, 0, 128);
 		EnterCriticalSection(&CS);
 		ChkSerial->Check_Serial = SerialCheck(RcvData2, ChkSerial->Check_Result);
 		_beginthread(Response_Part_Thread, 0, (void*)ChkSerial);
@@ -942,29 +1127,27 @@ void Response_Part_TCP_Thread(void* p) {
 	int res;
 	int i;
 	int Match_Serial = giMatch_Serial;
-	char SendData[50];
-	TCHAR SendData2[50];
+	TCHAR SendData2[128];
 
-	memset(SendData, 0x00, 50);
-	memset(SendData2, 0x00, 50);
+	memset(SendData2, 0x00, 128);
 	for (i = 0; i < g_Cfg[Match_Serial].SendCnt; i++) {
 		Sleep(g_Cfg[Match_Serial].Send[i].Delay);
 		if (Check_Res->Check_Serial == 1)
 		{
-			if (_tcsnccmp(g_Cfg[Match_Serial].Type, TEXT("BINARY"), lstrlen(TEXT("BINARY"))) == 0) _sntprintf(SendData2, sizeof(SendData), TEXT("%s"), Convert_BINARY_to_ASCII(g_Cfg[Match_Serial].Send[i].Response));
-			else if (_tcsnccmp(g_Cfg[Match_Serial].Type, TEXT("ASCII"), lstrlen(TEXT("ASCII"))) == 0) _sntprintf(SendData2, sizeof(SendData), g_Cfg[Match_Serial].Send[i].Response);
+			if (_tcsnccmp(g_Cfg[Match_Serial].Type, TEXT("BINARY"), lstrlen(TEXT("BINARY"))) == 0) _sntprintf(SendData2, sizeof(SendData2), TEXT("%s"), Convert_BINARY_to_ASCII(g_Cfg[Match_Serial].Send[i].Response));
+			else if (_tcsnccmp(g_Cfg[Match_Serial].Type, TEXT("ASCII"), lstrlen(TEXT("ASCII"))) == 0) _sntprintf(SendData2, sizeof(SendData2), g_Cfg[Match_Serial].Send[i].Response);
 
-			Edit_Print_RXTX(RXTX_TYPE[Tx], SendData2);								
+			Edit_Print_RX(RXTX_TYPE[Tx], SendData2);								
 			lstrcat(SendData2, TermStr[g_TX_CfgNo]);
-			res = TCPIP_Write(SendData2, strlen(SendData));
+			res = TCPIP_Write(SendData2, strlen(SendData2));
 			if (!res) 	return;
 		}
 		else if (Check_Res->Check_Serial == 2)
 		{
 			_sntprintf(SendData2, sizeof(SendData2), Check_Res->Check_Result);
-			Edit_Print_RXTX(RXTX_TYPE[Tx], SendData2);
+			Edit_Print_RX(RXTX_TYPE[Tx], SendData2);
 			lstrcat(SendData2, TermStr[g_TX_CfgNo]);
-			res = TCPIP_Write(SendData2, strlen(SendData));
+			res = TCPIP_Write(SendData2, strlen(SendData2));
 			if (!res) return;
 
 		}
@@ -1097,7 +1280,6 @@ int SerialCheck(TCHAR* RcvData, TCHAR* CheckResult)
 				return 1;
 			}
 		}
-
 	}
 	return -1;
 }
@@ -1108,17 +1290,18 @@ void Auto_Response_TCP(void* p)
 
 	int i_CheckSerial = -1;
 	BOOL res = -1;
-	TCHAR RcvData[50];
-	TCHAR CheckResult[50];
+	TCHAR RcvData[128];
+	TCHAR CheckResult[128];
 	int ReadCnt = -1;
-	TCHAR SendData[50];
+	Check_Serial *ChkSerial;
+	TCHAR SendData[128];
 	gbEndSignal = FALSE;
 
 	memset(RcvData, 0, sizeof(RcvData));
 	memset(CheckResult, 0, sizeof(CheckResult));
 	memset(SendData, 0, sizeof(SendData));
 
-
+	ChkSerial = (Check_Serial *)malloc(sizeof(Check_Serial));
 	while (!gbEndSignal)
 	{
 		while (!gbEndSignal)
@@ -1132,21 +1315,21 @@ void Auto_Response_TCP(void* p)
 			{
 				if (lstrlen(RcvData) > 0)
 				{
-					Edit_Print_RXTX(RXTX_TYPE[Rx], RcvData);
+					Edit_Print_RX(RXTX_TYPE[Rx], RcvData);
 				}
 			}
 			if (res)
 			{
-				Edit_Print_RXTX(RXTX_TYPE[Rx], RcvData);
+				Edit_Print_RX(RXTX_TYPE[Rx], RcvData);
 				i_CheckSerial = SerialCheck(RcvData, CheckResult);
-				//CS->Check_Serial = SerialCheck(RcvData, CS->Check_Result);
-				//_beginthread(Response_Part_TCP_Thread, 0, (void*)CS);
+				ChkSerial->Check_Serial = SerialCheck(RcvData, ChkSerial->Check_Result);
+				_beginthread(Response_Part_TCP_Thread, 0, (void*)ChkSerial);
 				break;
 			}
 
 			Sleep(1);
 		}
-		if (i_CheckSerial == 1)
+		/*if (i_CheckSerial == 1)
 		{
 			memset(SendData, 0x00, sizeof(RcvData) - 1);
 
@@ -1172,8 +1355,10 @@ void Auto_Response_TCP(void* p)
 
 
 		}
-		
+		*/
 	}
+	
+	free(ChkSerial);
 }
 
 
@@ -1183,48 +1368,40 @@ void Auto_Response(void* p)
 {
 	int ItemCnt = 0;
 	int i_CheckSerial = -1;
-	BOOL res = FALSE;
-	char RcvData[50];
-	char TermString[3];
-	char Buf=0;
-	TCHAR RcvData2[50];
-	char LogBuffer[50];
-	TCHAR LogBuffer2[50];
-	TCHAR CheckResult[50];
-	//Check_Serial *CS;
 	int ReadCnt = -1;
-	TCHAR SendData2[50];
-	char SendData[50];
+	char TermString[3];
+	char Buf = 0;
+	char LogBuffer[128];
+	BOOL res = FALSE;
+	TCHAR RcvData2[128];
+	TCHAR LogBuffer2[128];
+	TCHAR CheckResult[128];
+	TCHAR tcharBuf[128];
+	Check_Serial *ChkSerial;
 	Req_Data *RD;
+	
 
 
 	gbEndSignal = FALSE;
 	
 	//
-	TCHAR tcharBuf[50];
-	memset(tcharBuf, 0, 50);
-	
-	memset(RcvData, 0, sizeof(RcvData));
-	memset(CheckResult, 0, sizeof(CheckResult));
-	memset(SendData, 0, sizeof(SendData));
-	memset(RcvData2, 0, sizeof(RcvData2));
-	memset(SendData2, 0, sizeof(SendData2));
-	memset(TermString, 0, sizeof(TermString));
-	memset(LogBuffer, 0, 50);
-	memset(LogBuffer2, 0, 50);
-	//CS = (Check_Serial *)malloc(sizeof(Check_Serial));
-	RD = (Req_Data*)malloc(sizeof(RD));
-	Data_Logging(TRUE, 0);
 
+	memset(tcharBuf, 0, 128);
+	memset(TermString, 0, sizeof(TermString));
+	
+	
+	ChkSerial = (Check_Serial *)malloc(sizeof(Check_Serial));
+	RD = (Req_Data*)malloc(sizeof(Req_Data));
+	
+
+	
 	while (!gbEndSignal)
 	{
-
-		while (!gbEndSignal)
-		{
-			RS232_Clear_Buffer();
-			memset(RD->RcvData, 0x00, 50);
-			memset(CheckResult, 0, sizeof(CheckResult) - 1);
-			memset(LogBuffer, 0, 50);
+			memset(RD->RcvData, 0x00, 128);
+			memset(CheckResult, 0, sizeof(CheckResult));
+			memset(LogBuffer, 0, 128);
+			memset(LogBuffer2, 0, 128);
+			memset(RcvData2, 0, sizeof(RcvData2));
 			i_CheckSerial = 0;
 			ItemCnt = 0;
 			RD->DataLen = 0;
@@ -1240,13 +1417,41 @@ void Auto_Response(void* p)
 			//	res = RS232_Read_String(RcvData, TermStr_CH[g_RX_CfgNo], 255, 100, &ReadCnt);
 			//	CHAR_TO_TCHAR(RcvData, tcharBuf, strlen(RcvData) + 1);
 			//}
-			
-			RD->Result = Rs232_IO_Receive(RD->RcvData, &RD->DataLen);
-			
-			if (strlen(RD->RcvData) > 0) {
-				//printf ( "%s",RD->RcvData)
-				_beginthread(PRINT_LOG_AFTER_REQUEST, 0, (void*)RD);
+			switch (giMode) {
+			case 0: // Common
+				RD->Result = Rs232_IO_Receive(RD->RcvData, &RD->DataLen);
+				break;
+			case 1: // Secs
+				RD->Result = Rs232_IO_Receive_Secs(RD->RcvData, &RD->DataLen);
+				break;
 			}
+			
+			
+			
+			
+			//_beginthread(PRINT_LOG_AFTER_REQUEST, 0, (void*)RD);
+			CHAR_TO_TCHAR2(RD->RcvData, RD->DataLen, RcvData2);
+			CHAR_TO_LOGBUUFER(RD->RcvData, LogBuffer, RD->DataLen);
+			CHAR_TO_TCHAR(LogBuffer, LogBuffer2, 128);
+			if (!RD->Result)
+			{
+
+				if (strlen(RD->RcvData) > 0)
+				{
+					if (strncmp(LogBuffer, "[NULL]", 6)) Edit_Print_RX(RXTX_TYPE[Rx], LogBuffer2);
+				}
+
+			}
+			if (RD->Result)
+			{
+				RS232_Clear_Buffer();
+				Edit_Print_RX(RXTX_TYPE[Rx], LogBuffer2);
+				//i_CheckSerial = SerialCheck(RcvData2, CheckResult);
+				memset(ChkSerial->Check_Result, 0, 128);
+				ChkSerial->Check_Serial = SerialCheck(RcvData2, ChkSerial->Check_Result);
+				 _beginthread(Response_Part_Thread, 0, (void*)ChkSerial);
+			}
+			
 			//
 			//CHAR_TO_TCHAR(RcvData, RcvData2, 50);
 			//CHAR_TO_LOGBUUFER(RcvData, LogBuffer, ItemCnt);
@@ -1272,7 +1477,7 @@ void Auto_Response(void* p)
 
 			Sleep(1);
 
-		}
+		
 	
 		/*if (i_CheckSerial == 1) 
 		{
@@ -1299,9 +1504,8 @@ void Auto_Response(void* p)
 			
 		}*/
 
-		Sleep(1);
 	}
-//	free(CS);
+	free(ChkSerial);
 	free(RD);
 }
 BOOL Save_AutoCfg_File() {
@@ -1540,7 +1744,7 @@ void Set_Title_Thread(void* p)
 				{
 					_sntprintf(Buf, sizeof(Buf), TEXT("Connect!!!"));
 					Edit_Print_Log(Type, Buf);
-					Logging(Type, Buf);
+					//Logging(Type, Buf);
 					Cnt[RS232] = Connect;
 				}
 

@@ -3,7 +3,7 @@
 #include "Parameter.h"
 
 
-BOOL SerialInitialize(HWND hDlg);
+BOOL SerialInitialize( TCHAR* FileNameStr);
 int NumberOfvBar(TCHAR* Data);
 
 void STR_SEP(TCHAR* SourceString, TCHAR* ResultString1, TCHAR* ResultString2, int ReadMaxCount);
@@ -14,7 +14,8 @@ void Auto_Response_TCP(void* p);
 void Auto_Response(void* p);
 void Set_Title_Thread(void* p);
 void Edit_Print_Log(TCHAR* Type, TCHAR* RcvData);
-void Edit_Print_RXTX(TCHAR* Type, TCHAR* RcvData);
+void Edit_Print_RX(TCHAR* Type, TCHAR* RcvData);
+void Edit_Print_TX(TCHAR* Type, TCHAR* RcvData);
 
 void Disable_Button(BOOL Check);
 int GetNextSelectedItem(HWND hWnd, POSITION2 *pos);
@@ -31,3 +32,6 @@ void CHAR_TO_TCHAR(char* chardata, TCHAR* tchardata, int size);
 
 BOOL Save_AutoCfg_File();
 int SerialCheck(TCHAR* RcvData, TCHAR* CheckResult);
+
+BOOL Rs232_IO_Send(char *Cmnds, TCHAR* TermStr);
+void Data_Logging(int Control, int Logging_Style);

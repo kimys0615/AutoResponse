@@ -16,7 +16,7 @@ typedef struct  {
 
 typedef struct 
 {
-	TCHAR Type[128];		//	0 : ASCII		1 : BINARY
+	TCHAR Type[128];		
 	TCHAR Receive[128];
 	SendFormat Send[8];
 	int SendCnt;
@@ -30,7 +30,7 @@ extern Cfg g_Cfg[Max_Cfg_No];
 
 extern HINSTANCE g_hInst;
 extern HWND hWndMain, hTabDlg, hTab;
-extern HWND hCombo_ComPort, hCombo_Baud, hCombo_Parity, hCombo_Stop, hCombo_Data, hButton_Open, hButton_Close, hEdit_RXTX, hEdit_TX_SEND, hRadio_RX, hRadio_TX, hList_Req, hList_Response, hEdit_ID, hEdit_Receive, hEdit_Send, hCombo_Receive, hCombo_Send, hDlg_SerialCom, hDlg_TCPIP, hCombo_LocalIp, hIPADDRESS_IPAddr, hEdit_Port, hEdit_Log, hButton_IDOK, hRadio_TCPClient, hRadio_TCPServer, hRadio_Serial, hButton_Item_ReqDel, hButton_Item_ReqEdit, hEdit_FilePath, hButton_Save, h_Button_Close, h_Button_File, hDlg_FileConfig, hEdit_RXCfg_etc, hEdit_TXCfg_etc, hButton_RXETC, hButton_TXETC, hEdit_Send_Index, hEdit_Send_Response, hEdit_Send_Delay , hButton_Item_ResAdd , hButton_Item_ResDel , hButton_Item_ResEdit;
+extern HWND hCombo_ComPort, hCombo_Baud, hCombo_Parity, hCombo_Stop, hCombo_Data, hButton_Open, hButton_Close, hEdit_RXTX, hEdit_TX_SEND, hRadio_RX, hRadio_TX, hList_Req, hList_Response, hEdit_ID, hEdit_Receive, hEdit_Send, hCombo_Receive, hCombo_Send, hDlg_SerialCom, hDlg_TCPIP, hCombo_LocalIp, hIPADDRESS_IPAddr, hEdit_Port, hEdit_Log, hButton_IDOK, hRadio_TCPClient, hRadio_TCPServer, hRadio_Serial, hButton_Item_ReqDel, hButton_Item_ReqEdit, hEdit_FilePath, hButton_Save, h_Button_Close, h_Button_File, hDlg_FileConfig, hEdit_RXCfg_etc, hEdit_TXCfg_etc, hButton_RXETC, hButton_TXETC, hEdit_Send_Index, hEdit_Send_Response, hEdit_Send_Delay, hButton_Item_ResAdd, hButton_Item_ResDel, hButton_Item_ResEdit, hRadio_Mode_Common, hRadio_Mode_Secs, hRadio_RXCfg_CR, hRadio_RXCfg_LF, hRadio_RXCfg_CRLF, hRadio_RXCfg_etc, hEdit_RXCfg_etc, hButton_RXETC, hRadio_TXCfg_CR, hRadio_TXCfg_LF, hRadio_TXCfg_CRLF, hRadio_TXCfg_etc, hEdit_TXCfg_etc, hButton_TXETC;
 extern HMENU hMenu_Main, hMenu_Cfg, hMenu_Sub;
 extern TCHAR Save_Serial[Max_Cfg_No][256];
 extern TCHAR Tag[128][256];
@@ -50,6 +50,7 @@ extern int Stepcnt , EditStep ;
 extern int g_RX_PrintType, g_TX_PrintType;		// 0 : ASCII		1 : BINARY
 extern int giClientCancel;
 extern int giServerCancel;
+extern int giMode;
 
 extern BOOL b_RS232Connect ;
 extern BOOL b_TCPClientConnect ;

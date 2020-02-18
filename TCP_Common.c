@@ -8,6 +8,8 @@
 #include <string.h>
 #include "Parameter.h"
 #include "TCP_Common.h"
+
+
 //소켓 함수 오류를 출력 후 종료한다. 
 void err_quit ( char *msg ) 
 {

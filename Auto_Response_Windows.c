@@ -17,11 +17,12 @@
 //#include <afxcmn.h>
 
 //ListCtrl::GetFirstSelectedItemPosition();
-#pragma comment(lib, "legacy_stdio_definitions.lib")
+//#pragma comment(lib, "legacy_stdio_definitions.lib")
 WNDPROC OldEditProc;
 HINSTANCE g_hInst;
+
 HWND hWndMain, hTabDlg, hTab;
-HWND hCombo_ComPort, hCombo_Baud, hCombo_Parity, hCombo_Stop, hCombo_Data, hButton_Open, hButton_Close, hEdit_RXTX, hEdit_TX_SEND, hRadio_RX, hRadio_TX, hList_Req,hList_Response, hEdit_ID, hEdit_Receive, hEdit_Send, hCombo_Receive, hCombo_Send, hDlg_SerialCom, hDlg_TCPIP, hCombo_LocalIp, hIPADDRESS_IPAddr, hEdit_Port, hEdit_Log, hButton_IDOK, hRadio_TCPClient, hRadio_TCPServer, hRadio_Serial, hButton_Item_ReqDel, hButton_Item_ReqEdit, hEdit_FilePath, hButton_Save, h_Button_Close ,h_Button_File , hDlg_FileConfig , hEdit_RXCfg_etc , hEdit_TXCfg_etc, hButton_RXETC , hButton_TXETC , hEdit_Send_Index , hEdit_Send_Response , hEdit_Send_Delay , hButton_Item_ResAdd , hButton_Item_ResDel, hButton_Item_ResEdit;;
+HWND hCombo_ComPort, hCombo_Baud, hCombo_Parity, hCombo_Stop, hCombo_Data, hButton_Open, hButton_Close, hEdit_RXTX, hEdit_TX_SEND, hRadio_RX, hRadio_TX, hList_Req,hList_Response, hEdit_ID, hEdit_Receive, hEdit_Send, hCombo_Receive, hCombo_Send, hDlg_SerialCom, hDlg_TCPIP, hCombo_LocalIp, hIPADDRESS_IPAddr, hEdit_Port, hEdit_Log, hButton_IDOK, hRadio_TCPClient, hRadio_TCPServer, hRadio_Serial, hButton_Item_ReqDel, hButton_Item_ReqEdit, hEdit_FilePath, hButton_Save, h_Button_Close ,h_Button_File , hDlg_FileConfig , hEdit_RXCfg_etc , hEdit_TXCfg_etc, hButton_RXETC , hButton_TXETC , hEdit_Send_Index , hEdit_Send_Response , hEdit_Send_Delay , hButton_Item_ResAdd , hButton_Item_ResDel, hButton_Item_ResEdit, hRadio_Mode_Common , hRadio_Mode_Secs , hRadio_RXCfg_CR, hRadio_RXCfg_LF, hRadio_RXCfg_CRLF,hRadio_RXCfg_etc , hEdit_RXCfg_etc , hButton_RXETC , hRadio_TXCfg_CR, hRadio_TXCfg_LF, hRadio_TXCfg_CRLF, hRadio_TXCfg_etc, hEdit_TXCfg_etc, hButton_TXETC;
 HMENU hMenu_Main, hMenu_Cfg, hMenu_Sub;
 
 TCHAR* RXTX_TYPE[] = { TEXT("RX<< ") , TEXT("TX>> ") };
@@ -57,6 +58,7 @@ int g_RX_PrintType, g_TX_PrintType;		// 0 : ASCII		1 : BINARY
 int giClientCancel = 0;
 int giServerCancel = 0;
 int gSendStep = -1;
+int giMode = 0;
 
 BOOL gbSaveCheck = FALSE;
 BOOL b_RS232Connect = FALSE;
@@ -76,6 +78,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance
 
 	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG_MainDlg), HWND_DESKTOP, Dlg_Main);
 
+	Data_Logging(FALSE, 1);
 	TCPServer_Close();
 	TCPClient_Close();
 	RS232_Disconnect_Port();
@@ -178,12 +181,14 @@ LRESULT CALLBACK EditSubProc(HWND hWnd,UINT iMessage,WPARAM wParam,LPARAM lParam
 				lstrcat(SEND_RS232, TermStr[g_TX_CfgNo]);
 				break;
 			}
-			WideCharToMultiByte(CP_ACP, 0, SEND_RS232, 50, SENDBUF, 50, NULL, NULL);
-			if ( giMainRadio == 0 )	RS232_Write_String (SENDBUF, strlen (SENDBUF) );
+			TCHAR_TO_CHAR(SEND_RS232, SENDBUF, 50);
+			//WideCharToMultiByte(CP_ACP, 0, SEND_RS232, 50, SENDBUF, 50, NULL, NULL);
+
+			if ( giMainRadio == 0 )	Rs232_IO_Send(SENDBUF, TermStr[g_TX_CfgNo] );
 			else if ( giMainRadio == 1 ) TCPIP_Write (SEND_RS232, lstrlen (SEND_RS232) );
 			else if (giMainRadio == 2) TCPIP_Write(SEND_RS232, lstrlen(SEND_RS232));
 			
-			Edit_Print_RXTX(RXTX_TYPE[Tx], SEND_Edit);
+			Edit_Print_TX(RXTX_TYPE[Tx], SEND_Edit);
 			SetFocus(hWnd);
 			break;
 		}
@@ -538,13 +543,13 @@ BOOL CALLBACK Dlg_ItemSendEDIT(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM l
 BOOL CALLBACK Dlg_TCPIP ( HWND hDlg , UINT iMessage , WPARAM wParam , LPARAM lParam ) 
 {
 	int sel = -1;
-	TCHAR HostIP[50], Buf[50], TempBuf[16];
+	TCHAR HostIP[50], Buf[50], TempBuf[256];
 	DWORD size = 0, Test = -1, Test1 = -1, Test2 = -1;
 	int ret = -1;
 	IP_ADAPTER_INFO *pAdapterInfo = NULL;
 	IP_ADAPTER_INFO *pAdapt = NULL;
 	PIP_ADDR_STRING pAddrStr;
-	TCHAR str[255], str2[16];
+	TCHAR str[255], str2[256];
 
 	memset(str, 0, sizeof(str));
 	memset(str2, 0, sizeof(str2));
@@ -597,17 +602,18 @@ BOOL CALLBACK Dlg_TCPIP ( HWND hDlg , UINT iMessage , WPARAM wParam , LPARAM lPa
 				Test = inet_addr(pAddrStr->IpAddress.String);
 				
 					
-
-					MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, pAddrStr->IpAddress.String, strlen(pAddrStr->IpAddress.String), str2, 256);
+				CHAR_TO_TCHAR(pAddrStr->IpAddress.String, str2, 256);
+					//MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, pAddrStr->IpAddress.String, strlen(pAddrStr->IpAddress.String), str2, 256);
 
 					_sntprintf(str, sizeof(str), TEXT("Ipaddress.String -> [ %s ] , inet_addr Value -> [ %u ]"), str2, Test);
 					
-					Log_Create(TEXT("IPLOG"),str2, str);
+					//Log_Create(TEXT("IPLOG"),str2, str);
 				
 
 				if (Test != Any && Test != LoopBack) {
 					memset(TempBuf, 0, sizeof(TempBuf));
-					MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, pAddrStr->IpAddress.String, strlen(pAddrStr->IpAddress.String), TempBuf, 256);
+					CHAR_TO_TCHAR(pAddrStr->IpAddress.String, TempBuf, 256);
+					//MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, pAddrStr->IpAddress.String, strlen(pAddrStr->IpAddress.String), TempBuf, 256);
 					SendDlgItemMessage(hDlg, IDC_COMBO_LocalIP, CB_INSERTSTRING, sel, (LPARAM)TempBuf);	// 
 					sel++;
 				}
@@ -710,6 +716,7 @@ BOOL CALLBACK Dlg_SerialCom ( HWND hDlg , UINT iMessage , WPARAM wParam , LPARAM
 				_stscanf( g_ComPortName , TEXT("COM%d"),&ComPortNum );
 				break;
 			}
+			break;
 		case IDC_COMBO_Baud:
 			switch ( HIWORD ( wParam )) 
 			{
@@ -805,7 +812,20 @@ BOOL CALLBACK Dlg_Main ( HWND hDlg , UINT iMessage , WPARAM wParam , LPARAM lPar
 		hEdit_TXCfg_etc = GetDlgItem(hDlg, IDC_EDIT_TXCfg_etc);
 		hButton_RXETC = GetDlgItem(hDlg, IDC_BUTTON_RXETC);
 		hButton_TXETC = GetDlgItem(hDlg, IDC_BUTTON_TXETC);
-
+		hRadio_Mode_Common = GetDlgItem(hDlg, IDC_RADIO_MODE_COMMON);
+		hRadio_Mode_Secs = GetDlgItem(hDlg, IDC_RADIO_MODE_SECS);
+		hRadio_RXCfg_CR = GetDlgItem(hDlg, IDC_RADIO_RXCfg_CR);
+		hRadio_RXCfg_LF = GetDlgItem(hDlg, IDC_RADIO_RXCfg_LF);
+		hRadio_RXCfg_CRLF = GetDlgItem(hDlg, IDC_RADIO_RXCfg_CRLF);
+		hRadio_RXCfg_etc = GetDlgItem(hDlg, IDC_RADIO_RXCfg_etc);
+		hEdit_RXCfg_etc = GetDlgItem(hDlg, IDC_EDIT_RXCfg_etc);
+		hButton_RXETC = GetDlgItem(hDlg, IDC_BUTTON_RXETC);
+		hRadio_TXCfg_CR = GetDlgItem(hDlg, IDC_RADIO_TXCfg_CR);
+		hRadio_TXCfg_LF = GetDlgItem(hDlg, IDC_RADIO_TXCfg_LF);
+		hRadio_TXCfg_CRLF = GetDlgItem(hDlg, IDC_RADIO_TXCfg_CRLF);
+		hRadio_TXCfg_etc = GetDlgItem(hDlg, IDC_RADIO_TXCfg_etc);
+		hEdit_TXCfg_etc	 = GetDlgItem(hDlg, IDC_EDIT_TXCfg_etc);
+		hButton_TXETC = GetDlgItem(hDlg, IDC_BUTTON_TXETC);
 		GetWindowRect(hTab, &prt);
 		TabCtrl_AdjustRect(hTab, FALSE, &prt);
 		ScreenToClient(hWndMain, (LPPOINT)&prt);
@@ -825,7 +845,7 @@ BOOL CALLBACK Dlg_Main ( HWND hDlg , UINT iMessage , WPARAM wParam , LPARAM lPar
 		CheckRadioButton(hDlg, IDC_RADIO_TX_ASCII, IDC_RADIO_TX_BINARY, IDC_RADIO_TX_ASCII);
 		CheckRadioButton(hDlg, IDC_RADIO_RXCfg_CR, IDC_RADIO_RXCfg_CRLF, IDC_RADIO_RXCfg_CR);
 		CheckRadioButton(hDlg, IDC_RADIO_TXCfg_CR, IDC_RADIO_TXCfg_CRLF, IDC_RADIO_TXCfg_CR);
-
+		CheckRadioButton(hDlg, IDC_RADIO_MODE_COMMON, IDC_RADIO_MODE_SECS, IDC_RADIO_MODE_COMMON);
 		SetFocus(hEdit_TX_SEND);
 		OldEditProc = (WNDPROC)SetWindowLongPtr(hEdit_TX_SEND, GWLP_WNDPROC, (LONG_PTR)EditSubProc);
 
@@ -926,7 +946,12 @@ BOOL CALLBACK Dlg_Main ( HWND hDlg , UINT iMessage , WPARAM wParam , LPARAM lPar
 				TCHAR_TO_CHAR(TermStr[4], TermStr_CH[4], 16);
 			}
 			break;
-
+		case IDC_RADIO_MODE_COMMON:
+			giMode = 0;
+			break;
+		case IDC_RADIO_MODE_SECS:
+			giMode = 1;
+			break;
 		case IDC_RADIO_SerialCom:
 			giMainRadio = 0;
 			ShowWindow(hDlg_TCPIP, SW_HIDE);
@@ -1016,6 +1041,7 @@ BOOL CALLBACK Dlg_Main ( HWND hDlg , UINT iMessage , WPARAM wParam , LPARAM lPar
 					{
 						RS232_Connectflag = Connect;
 						_beginthread(Auto_Response, 0, NULL);
+						Data_Logging(TRUE, 1);
 						Disable_Button(FALSE);
 					}
 					else RS232_Connectflag = Fail;
@@ -1061,6 +1087,7 @@ BOOL CALLBACK Dlg_Main ( HWND hDlg , UINT iMessage , WPARAM wParam , LPARAM lPar
 			case 0:
 				if (MessageBox(NULL, TEXT("Do you want to disconnect RS232?"), TEXT("RS232"), MB_OKCANCEL) != IDOK) break;
 				RS232_Connectflag = Disconnect;
+				Data_Logging(FALSE, 1);
 				RS232_Disconnect_Port();
 				b_RS232Connect = FALSE;
 				break;
@@ -1101,6 +1128,7 @@ BOOL CALLBACK Dlg_Main ( HWND hDlg , UINT iMessage , WPARAM wParam , LPARAM lPar
 					giServerCancel = Disconnect;
 					break;
 				}
+				break;
 			default: break;
 			}
 			break;
@@ -1130,6 +1158,10 @@ BOOL CALLBACK Dlg_FileConfig(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lPa
 	TCHAR Buffer1[128], Buffer2[128];
 	char charBuffer[128];
 	int Sendidx = -1;
+	LPNMHDR hdr;
+	LPNMLISTVIEW nlv;
+
+
 	memset(Temp, 0, sizeof(Temp));
 	memset(Cfg_Type, 0, sizeof(Cfg_Type));
 	memset(Buffer1, 0, 128);
@@ -1139,8 +1171,6 @@ BOOL CALLBACK Dlg_FileConfig(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lPa
 	switch (iMessage)
 	{
 	case WM_NOTIFY:
-		LPNMHDR hdr;
-		LPNMLISTVIEW nlv;
 		hdr = (LPNMHDR)lParam;
 		nlv = (LPNMLISTVIEW)lParam;
 
@@ -1238,7 +1268,7 @@ BOOL CALLBACK Dlg_FileConfig(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lPa
 			{
 				//SaveSerialSetting();
 				Save_AutoCfg_File();
-				if (!SerialInitialize(hDlg))
+				if (!SerialInitialize( glpstrFile))
 				{
 					MessageBox(hDlg, TEXT("Save Error"), TEXT("Button"), MB_OK);
 					return FALSE;
@@ -1286,7 +1316,7 @@ BOOL CALLBACK Dlg_FileConfig(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lPa
 					if (GetSaveFileName(&OFN) != 0)
 					{
 						SaveSerialSetting();
-						if (!SerialInitialize(hDlg))
+						if (!SerialInitialize( glpstrFile))
 						{
 							MessageBox(hDlg, TEXT("Save Error"), TEXT("Button"), MB_OK);
 							return FALSE;
@@ -1303,6 +1333,8 @@ BOOL CALLBACK Dlg_FileConfig(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lPa
 					return TRUE;
 				}
 			}
+			memset(glpstrFile, 0, MAX_PATH);
+			memset(gszFileTitle, 0, MAX_PATH);
 			memset(&OFN, 0, sizeof(OPENFILENAME));
 			OFN.lStructSize = sizeof(OPENFILENAME);
 			OFN.hwndOwner = hDlg;
@@ -1318,11 +1350,13 @@ BOOL CALLBACK Dlg_FileConfig(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lPa
 			OFN.lpstrInitialDir = gInitDir;
 			if (GetOpenFileName(&OFN) != 0)
 			{
+				SetWindowText(hEdit_FilePath, _T(""));
 				SendMessage(hEdit_FilePath, EM_REPLACESEL, FALSE, (LPARAM)OFN.lpstrFile);
+			
 				ListView_DeleteAllItems(hList_Req);
 				memset(Save_Serial, 0, sizeof(Save_Serial));
 
-				if (!SerialInitialize(hDlg))
+				if (!SerialInitialize( glpstrFile))
 				{
 					MessageBox(hDlg, TEXT("Load Error"), TEXT("Button"), MB_OK);
 					return FALSE;
@@ -1360,7 +1394,7 @@ BOOL CALLBACK Dlg_FileConfig(HWND hDlg, UINT iMessage, WPARAM wParam, LPARAM lPa
 
 				gbSaveCheck = FALSE;
 			}
-		
+			return TRUE;
 			break;
 		case ID_AutoCfg_ADD:
 		case IDC_BUTTON_REQ_ADD:
