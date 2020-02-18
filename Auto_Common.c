@@ -84,19 +84,19 @@ void Logging(TCHAR* Type, TCHAR* Data)
 	GetLocalTime(&st);
 	n = _sntprintf(temp, sizeof(temp), TEXT("%4d%02d%02d_AutoResponse.txt"), st.wYear, st.wMonth, st.wDay);
 	if (n < 0 || n > sizeof(temp)) {
-		printf("ERROR");
+		(void*)printf("ERROR");
 		return;
 	}
 	fp = _tfopen(temp, TEXT("a+"));
 	n = _sntprintf(temp, sizeof(temp), TEXT("[%4d:%02d:%02d %2d:%02d:%02d:%03d] \t %s \t %s"), st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, tchType, tchData);
 	if (n < 0 || n > sizeof(temp)) {
-		printf("ERROR");
+		(void*)printf("ERROR");
 		return;
 	}
 	_fputts(TEXT("\n"), fp);
 	res = fclose(fp);
-	if (!res) printf("ERROR");
-	else printf("SUCCESS");
+	if (!res) (void*)printf("ERROR");
+	else (void*)printf("SUCCESS");
 }
 
 //LogFile 생성
@@ -118,7 +118,7 @@ void Log_Create(TCHAR* FileName , TCHAR* Cfg, TCHAR* Data) {
 
 	n = _sntprintf(str, sizeof(str), TEXT("%s.txt"), tchFileName);
 	if (n < 0 || n > sizeof(str)) {
-		printf("ERROR");
+		(void*)printf("ERROR");
 		return;
 	}
 	fp = _tfopen(str, TEXT("a+"));
@@ -131,7 +131,7 @@ void Log_Create(TCHAR* FileName , TCHAR* Cfg, TCHAR* Data) {
 
 	n = _sntprintf(temp, sizeof(temp), TEXT("%4d:%2d:%2d %2d:%2d:%2d:%3d \t %s \t %s"), st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, tchCfg, tchData);
 	if (n < 0 || n > sizeof(temp)) {
-		printf("ERROR");
+		(void*)printf("ERROR");
 		return;
 	}
 	//	while ( TRUE ) {
@@ -143,8 +143,8 @@ void Log_Create(TCHAR* FileName , TCHAR* Cfg, TCHAR* Data) {
 	_fputts(TEXT("\n"), fp);
 	_fputts(temp, fp);
 	res = fclose(fp);
-	if (!res) printf("ERROR");
-	else printf("SUCCESS");
+	if (!res) (void*)printf("ERROR");
+	else (void*)printf("SUCCESS");
 }
 void Data_Logging(int Control, int Logging_Style) {
 	SYSTEMTIME st;
@@ -157,7 +157,7 @@ void Data_Logging(int Control, int Logging_Style) {
 		GetLocalTime(&st);
 		n = snprintf(FileName, sizeof(FileName), "%04d%02d%02d%02d_RS232.log", st.wYear, st.wMonth, st.wDay, st.wHour);
 		if (n < 0 || n > sizeof(FileName)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 		RS232_Logging_Style(iLogging_Style, FileName);
@@ -206,7 +206,7 @@ void CHAR_TO_LOGBUUFER(char* chardata, char* logdata, int size) {
 		if (chData[i] == '\0') {
 			n = snprintf(chlogData +j, isize -j, "[NULL]");
 			if (n < 0 || n > isize - j ) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return;
 			}
 			j += 6;
@@ -226,7 +226,7 @@ void RX_History_Save(TCHAR* RcvData)
 	{
 		n = _sntprintf(RX_History[giRX_History], sizeof(RX_History[giRX_History]), tchRcvData);
 		if (n < 0 || n > sizeof(RX_History[giRX_History])) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 		if (++giRX_History == 16) giRX_History = 0;
@@ -241,7 +241,7 @@ void TX_History_Save(TCHAR* RcvData)
 	{
 		n = _sntprintf(TX_History[giTX_History], sizeof(TX_History[giTX_History]), tchRcvData);
 		if (n < 0 || n > sizeof(TX_History[giTX_History])) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 		if (++giTX_History == 16) giTX_History = 0;
@@ -261,7 +261,7 @@ void Edit_Print_Log(TCHAR* Type, TCHAR* RcvData)
 	GetLocalTime(&st);
 	n = _sntprintf(PrintVal, sizeof(PrintVal), TEXT("%4d:%2d:%2d %2d:%2d:%2d:%3d\t%s\t%s"), st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, tchType, tchRcvData);
 	if (n < 0 || n > sizeof(PrintVal)) {
-		printf("ERROR");
+		(void*)printf("ERROR");
 		return;
 	}
 
@@ -292,7 +292,7 @@ void Edit_Print_RX(TCHAR* Type, TCHAR* RcvData)
 	case 0:
 		n = _sntprintf(PrintVal, sizeof(PrintVal), tchType);
 		if (n < 0 || n > sizeof(PrintVal)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 		lstrcat(PrintVal, tchRcvData);
@@ -311,14 +311,14 @@ void Edit_Print_RX(TCHAR* Type, TCHAR* RcvData)
 	case 1:
 		n = _sntprintf(PrintVal, sizeof(PrintVal), tchType);
 		if (n < 0 || n > sizeof(PrintVal)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 		for (i = 0; i < 128; i++) 
 		{
 			n = _sntprintf(Temp, sizeof(Temp), TEXT("%02x "), tchRcvData[i]);
 			if (n < 0 || n > sizeof(Temp)) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return;
 			}
 			if (tchRcvData[i] == '\0') break;
@@ -361,7 +361,7 @@ void Edit_Print_TX(TCHAR* Type, TCHAR* RcvData)
 	case 0:
 		n = _sntprintf(PrintVal, sizeof(PrintVal), tchType);
 		if (n < 0 || n > sizeof(PrintVal)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 		lstrcat(PrintVal, tchRcvData);
@@ -380,14 +380,14 @@ void Edit_Print_TX(TCHAR* Type, TCHAR* RcvData)
 	case 1:
 		n = _sntprintf(PrintVal, sizeof(PrintVal), tchType);
 		if (n < 0 || n > sizeof(PrintVal)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 		for (i = 0; i < 128; i++)
 		{
 			n = _sntprintf(Temp, sizeof(Temp), TEXT("%02x "), tchRcvData[i]);
 			if (n < 0 || n > sizeof(Temp)) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return;
 			}
 			if (tchRcvData[i] == '\0') break;
@@ -465,7 +465,7 @@ TCHAR* Convert_BINARY_to_ASCII(TCHAR* RcvBuf)
 	(void*)memset(ReturnBuf, 0, sizeof(ReturnBuf));
 	n = _sntprintf(Temp, sizeof(Temp), tchRcvBuf);
 	if (n < 0 || n > sizeof(Temp)) {
-		printf("ERROR");
+		(void*)printf("ERROR");
 		return _T("ERROR");
 	}
 
@@ -481,7 +481,7 @@ TCHAR* Convert_BINARY_to_ASCII(TCHAR* RcvBuf)
 		{
 			n = _sntprintf(Buf1, sizeof(Buf1), TEXT("%c%c"), Temp[i], Temp[i + 1]);
 			if (n < 0 || n > sizeof(Buf1)) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return _T("ERROR");
 			}
 			val = _tcstol(Buf1, NULL, 16);
@@ -521,12 +521,12 @@ void STR_SEP(TCHAR* SourceString, TCHAR* ResultString1, TCHAR* ResultString2, in
 			Do_Flag = TRUE;
 			n = _sntprintf(tchResultString2, lstrlen(tchSourceString + i) + 1, tchSourceString + i + 1);
 			if (n < 0 || n > lstrlen(tchSourceString + i) + 1) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return;
 			}
 			n = _sntprintf(tchResultString1, lstrlen(tchSourceString) + 1, tchSourceString);
 			if (n < 0 || n > lstrlen(tchSourceString) + 1) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return;
 			}
 			(void*)memset(tchResultString1 + i, 0, lstrlen(tchResultString1 + i) + 1);
@@ -536,19 +536,19 @@ void STR_SEP(TCHAR* SourceString, TCHAR* ResultString1, TCHAR* ResultString2, in
 	if (Do_Flag == TRUE) {
 		n = _sntprintf(ResultString1, iReadMaxCount, tchResultString1);
 		if (n < 0 || n >(iReadMaxCount)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 		n = _sntprintf(ResultString2, iReadMaxCount, tchResultString2);
 		if (n < 0 || n > iReadMaxCount) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 	}
 	else {
 		n = _sntprintf(ResultString1, iReadMaxCount, tchSourceString);
 		if (n < 0 || n > iReadMaxCount) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 	}
@@ -576,12 +576,12 @@ void STR_SEP_CHAR(TCHAR* SourceString, TCHAR delimiterChar, TCHAR* ResultString1
 			Do_Flag = TRUE;
 			n = _sntprintf(tchResultString2, lstrlen(tchSourceString + i) + 1, tchSourceString + i+1);
 			if (n < 0 || n > lstrlen(tchSourceString+i)+1) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return;
 			}
 			n = _sntprintf(tchResultString1, lstrlen(tchSourceString) + 1, tchSourceString);
 			if (n < 0 || n > lstrlen(tchSourceString)+1) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return;
 			}
 			(void*)memset(tchResultString1 + i, 0, lstrlen(tchResultString1 + i) + 1);
@@ -591,12 +591,12 @@ void STR_SEP_CHAR(TCHAR* SourceString, TCHAR delimiterChar, TCHAR* ResultString1
 	if (Do_Flag == TRUE) {
 		n = _sntprintf(ResultString1, iReadMaxCount, tchResultString1);
 		if (n < 0 || n > iReadMaxCount) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 		n = _sntprintf(ResultString2, iReadMaxCount, tchResultString2);
 		if (n < 0 || n > iReadMaxCount) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 	}
@@ -626,7 +626,6 @@ BOOL SerialInitialize( TCHAR* FileNameStr)
 {
 	TCHAR* tchFileNameStr = FileNameStr;
 	TCHAR RecvTag[16];
-	BOOL bStepEndFind = FALSE;
 	TCHAR FilePath[MAX_PATH];
 	FILE* fp = _tfopen(gszFileTitle, TEXT("r+"));
 	TCHAR buffer[256];
@@ -636,7 +635,8 @@ BOOL SerialInitialize( TCHAR* FileNameStr)
 	char FileTitle[MAX_PATH];
 	char charBuffer[256];
 	TCHAR tcharBuffer[256];
-	int i = 0, j = 0;
+	int i = 0;
+	int j = 0;
 	int NumOfTag = -1;
 	int NumOfvBar = -1;
 	int DelCnt = -1;
@@ -674,28 +674,28 @@ BOOL SerialInitialize( TCHAR* FileNameStr)
 	for (i = 0; i < ((int) json_array_get_count(array1)) ; i++)     // 배열의 요소 개수만큼 반복
 	{
 		cmd = json_array_get_object(array1, i);
-		if (strlen(json_object_get_string(cmd, "Type")) <= 0)continue;
+		if (strlen(json_object_get_string(cmd, "Type")) == 0)continue;
 		n = _snprintf(charBuffer, sizeof (charBuffer) , json_object_get_string(cmd, "Type"));
 		if (n < 0 || n > sizeof(charBuffer)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return FALSE;
 		}
 		CHAR_TO_TCHAR(charBuffer, tcharBuffer, 256);
 		n = _sntprintf(g_Cfg[i].Type, sizeof(g_Cfg[i].Type), tcharBuffer);
 		if (n < 0 || n > sizeof(g_Cfg[i].Type)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return FALSE;
 		}
 
 		n = _snprintf(charBuffer, sizeof(charBuffer), json_object_get_string(cmd, "RECV"));
 		if (n < 0 || n > sizeof(charBuffer)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return FALSE;
 		}
 		CHAR_TO_TCHAR(charBuffer, tcharBuffer, 256);
 		n = _sntprintf(g_Cfg[i].Receive, sizeof(g_Cfg[i].Receive), tcharBuffer);
 		if (n < 0 || n > sizeof(g_Cfg[i].Receive)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return FALSE;
 		}
 		if (NumOfTag = Find_Tag_Char(g_Cfg[i].Receive)) STR_SEP_CHAR(g_Cfg[i].Receive, '$', g_Cfg[i].RX_Comp, RecvTag, lstrlen(g_Cfg[i].Receive));
@@ -705,7 +705,7 @@ BOOL SerialInitialize( TCHAR* FileNameStr)
 		{
 			n = _snprintf(charBuffer, sizeof(charBuffer), json_array_get_string(array2, j));
 			if (n < 0 || n > sizeof(charBuffer)) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return FALSE;
 			}
 			CHAR_TO_TCHAR(charBuffer, tcharBuffer, 256);
@@ -898,10 +898,10 @@ void SerialDelete(int SendStep ,int idx , int Type)
 //문자열을 전달받아 '$'태그를 찾아 '$'태그의 번호를 리턴해준다.
 int Get_Tag_No(TCHAR* pszStr) 
 {
-	int i = -1;
-	int j = -1;
+	unsigned int i = -1;
+	unsigned int j = -1;
 	int k = 0;
-	int len = -1;
+	unsigned int len = -1;
 	int TagNo = -1;
 	TCHAR temp[32];
 	TCHAR* tchpszStr = pszStr;
@@ -946,7 +946,8 @@ TCHAR Find_CHAR(TCHAR* Data)
 //문자열과 구분자를  전달받아 구분자의 개수를 리턴한다.
 int NumOfCHAR(TCHAR Data, TCHAR* RcvBuf) 
 {
-	int i,cnt=0;
+	int i;
+	int cnt = 0;
 	TCHAR tchData = Data;
 	TCHAR* tchRcvBuf = RcvBuf;
 
@@ -983,14 +984,14 @@ void Tagcat(TCHAR* SendData, TCHAR* Check, int NumOfTag)
 		STR_SEP_CHAR(tchSendData, '$', RecvData, TempBuf, lstrlen(tchSendData));
 		n = _sntprintf(RecvTag, sizeof(RecvTag), TEXT("$%s"), TempBuf);
 		if (n < 0 || n > sizeof(RecvTag)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return ;
 		}
 	}
 	else {
 		n = _sntprintf(RecvTag, sizeof(RecvTag), tchSendData);
 		if (n < 0 || n > sizeof(RecvTag)) {
-			printf("ERROR");
+			(void*)printf("ERROR");
 			return;
 		}
 	}
@@ -1100,14 +1101,24 @@ void Tag_Set(TCHAR* TagNo, TCHAR* Val, int NumOfTag)
 				if (lstrlen(SaveVal[ValCnt]) <= 0) {
 					n = _sntprintf(Tag[Tagno], sizeof(Tag[Tagno]), TEXT("0"));
 					if (n < 0 || n > sizeof(Tag[Tagno])) {
-						printf("ERROR");
+						(void*)printf("ERROR");
+						for (i = 0; i < iNumOfTag; i++)
+						{
+							free(SaveVal[i]);
+						}
+						free(SaveVal);
 						return;
 					}
 				}
 				else {
 					_sntprintf(Tag[Tagno], sizeof(Tag[Tagno]), SaveVal[ValCnt]);
 					if (n < 0 || n > sizeof(Tag[Tagno])) {
-						printf("ERROR");
+						(void*)printf("ERROR");
+						for (i = 0; i < iNumOfTag; i++)
+						{
+							free(SaveVal[i]);
+						}
+						free(SaveVal);
 						return;
 					}
 				}
@@ -1128,6 +1139,10 @@ void Tag_Set(TCHAR* TagNo, TCHAR* Val, int NumOfTag)
 		}
 
 		if (itemCnt == iNumOfTag) {
+			for (i = 0; i < iNumOfTag; i++)
+			{
+				free(SaveVal[i]);
+			}
 			free(SaveVal);
 			return;
 		}
@@ -1227,7 +1242,10 @@ BOOL Rs232_IO_Receive_Secs(char* Response, int* ItemCnt) {
 BOOL Rs232_IO_Receive(char *Response, int* ItemCnt ) {
 	BOOL bResult = FALSE;
 	char ch;
-	int i = 0,j=0,k=0, icnt = 0 ;
+	int i = 0;
+	int j = 0;
+	int k = 0;
+	int icnt = 0;
 
 	
 	bResult = RS232_Read_Char(&ch);
@@ -1304,14 +1322,14 @@ void Response_Part_Thread(void* p) {
 			if (_tcsnccmp(g_Cfg[Match_Serial].Type, TEXT("BINARY"), lstrlen(TEXT("BINARY"))) == 0) {
 				n = _sntprintf(SendData2, sizeof(SendData2), TEXT("%s"), Convert_BINARY_to_ASCII(g_Cfg[Match_Serial].Send[i].Response));
 				if (n < 0 || n > sizeof(SendData2)) {
-					printf("ERROR");
+					(void*)printf("ERROR");
 					return;
 				}
 			}
 			else if (_tcsnccmp(g_Cfg[Match_Serial].Type, TEXT("ASCII"), lstrlen(TEXT("ASCII"))) == 0) {
 				n = _sntprintf(SendData2, sizeof(SendData2), g_Cfg[Match_Serial].Send[i].Response);
 				if (n < 0 || n > sizeof(SendData2)) {
-					printf("ERROR");
+					(void*)printf("ERROR");
 					return;
 				}
 			}
@@ -1336,14 +1354,16 @@ void Response_Part_Thread(void* p) {
 				res = Rs232_IO_Send_Secs(SendData);
 				if (!res) 	return;
 				break;
+			default:
+				break;
 			}
-
+			
 		}
 		else if (Check_Res->Check_Serial == 2)
 		{
 			n = _sntprintf(SendData2, sizeof(SendData2), Check_Res->Check_Result);
 			if (n < 0 || n > sizeof(SendData2)) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return;
 			}
 			Edit_Print_TX(RXTX_TYPE[Tx], SendData2);
@@ -1435,14 +1455,14 @@ void Response_Part_TCP_Thread(void* p) {
 			if (_tcsnccmp(g_Cfg[Match_Serial].Type, TEXT("BINARY"), lstrlen(TEXT("BINARY"))) == 0) {
 				n = _sntprintf(SendData2, sizeof(SendData2), TEXT("%s"), Convert_BINARY_to_ASCII(g_Cfg[Match_Serial].Send[i].Response));
 				if (n < 0 || n > sizeof(SendData2)) {
-					printf("ERROR");
+					(void*)printf("ERROR");
 					return;
 				}
 			}
 			else if (_tcsnccmp(g_Cfg[Match_Serial].Type, TEXT("ASCII"), lstrlen(TEXT("ASCII"))) == 0) {
 				n = _sntprintf(SendData2, sizeof(SendData2), g_Cfg[Match_Serial].Send[i].Response);
 				if (n < 0 || n > sizeof(SendData2)) {
-					printf("ERROR");
+					(void*)printf("ERROR");
 					return;
 				}
 			}
@@ -1456,7 +1476,7 @@ void Response_Part_TCP_Thread(void* p) {
 		{
 			n = _sntprintf(SendData2, sizeof(SendData2), Check_Res->Check_Result);
 			if (n < 0 || n > sizeof(SendData2)) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return;
 			}
 			Edit_Print_RX(RXTX_TYPE[Tx], SendData2);
@@ -1548,13 +1568,13 @@ int SerialCheck(TCHAR* RcvData, TCHAR* CheckResult)
 					TagPos = Find_Tag(g_Cfg[i].Receive);
 					n = _sntprintf(Temp, sizeof(Temp), ReceiveBuf + TagPos);
 					if (n < 0 || n > sizeof(Temp)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 						return 9999;
 					}
 					STR_SEP_CHAR(g_Cfg[i].Receive, '$', ReceiveBuf, Temp2Buf, lstrlen(g_Cfg[i].Receive));
 					n = _sntprintf(Temp2, sizeof(Temp2), TEXT("$%s"), Temp2Buf);
 					if (n < 0 || n > sizeof(Temp2)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 						return 9999;
 					}
 					Tag_Set(Temp2, Temp, NumOfTag);
@@ -1589,13 +1609,13 @@ int SerialCheck(TCHAR* RcvData, TCHAR* CheckResult)
 					TagPos = Find_Tag(Convert_BINARY_to_ASCII(g_Cfg[i].Receive));
 					n = _sntprintf(Temp, sizeof(Temp), ReceiveBuf + TagPos);
 					if (n < 0 || n > sizeof(Temp)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 						return 9999;
 					}
 					STR_SEP_CHAR(Convert_BINARY_to_ASCII(g_Cfg[i].Receive), '$', ReceiveBuf, Temp2Buf, lstrlen(g_Cfg[i].Receive));
 					_sntprintf(Temp2, sizeof(Temp2), TEXT("$%s"), Temp2Buf);
 					if (n < 0 || n > sizeof(Temp2)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 						return 9999;
 					}
 					Tag_Set(Temp2, Temp, NumOfTag);
@@ -1887,7 +1907,7 @@ void Save_AutoCfg_File() {
 			if (g_Cfg[i].Send[j].index == 0) continue;
 			n = _sntprintf(tcharBuffer, sizeof(tcharBuffer), TEXT("%d|%s|%d"), g_Cfg[i].Send[j].index, g_Cfg[i].Send[j].Response, g_Cfg[i].Send[j].Delay);
 			if (n < 0 || n > sizeof(tcharBuffer)) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				return;
 			}
 			TCHAR_TO_CHAR(tcharBuffer, charBuffer, 128);
@@ -1922,7 +1942,7 @@ void Set_Title_Thread(void* p)
 			EnableWindow(h_Button_Close, TRUE);
 			n = _sntprintf(Type, sizeof(Type), TEXT("TCP/IP_Client"));
 			if (n < 0 || n > sizeof(Type)) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 			}
 			if (Client_Connectflag == Fail)
 			{
@@ -1930,7 +1950,7 @@ void Set_Title_Thread(void* p)
 				{
 					n = _sntprintf(Buf, sizeof(Buf), TEXT("Connecting..."));
 					if (n < 0 || n > sizeof(Buf)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 					}
 					Edit_Print_Log(Type, Buf);
 					Logging(Type, Buf);
@@ -1945,7 +1965,7 @@ void Set_Title_Thread(void* p)
 				{
 					n = _sntprintf(Buf, sizeof(Buf), TEXT("Connect!!!"));
 					if (n < 0 || n > sizeof(Buf)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 					}
 					_beginthread(Auto_Response_TCP, 0, (void*)sock);
 					Edit_Print_Log(Type, Buf);
@@ -1963,7 +1983,7 @@ void Set_Title_Thread(void* p)
 					Client_Connectflag = Not_Use;
 					n = _sntprintf(Buf, sizeof(Buf), TEXT("TimeOut..."));
 					if (n < 0 || n > sizeof(Buf)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 					}
 					Edit_Print_Log(Type, Buf);
 					Logging(Type, Buf);
@@ -1986,7 +2006,7 @@ void Set_Title_Thread(void* p)
 						{
 							n = _sntprintf(Buf, sizeof(Buf), TEXT("Disconnect"));
 							if (n < 0 || n > sizeof(Buf)) {
-								printf("ERROR");
+								(void*)printf("ERROR");
 								
 							}
 							break;
@@ -1995,7 +2015,7 @@ void Set_Title_Thread(void* p)
 						{
 							n = _sntprintf(Buf, sizeof(Buf), TEXT("Cancel"));
 							if (n < 0 || n > sizeof(Buf)) {
-								printf("ERROR");
+								(void*)printf("ERROR");
 								
 							}
 							break;
@@ -2018,7 +2038,7 @@ void Set_Title_Thread(void* p)
 			EnableWindow(h_Button_Close, TRUE);
 			n = _sntprintf(Type, sizeof(Type), TEXT("TCP/IP_Server"));
 			if (n < 0 || n > sizeof(Type)) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 			}
 			if (Server_Acceptflag == Waiting)
 			{
@@ -2026,7 +2046,7 @@ void Set_Title_Thread(void* p)
 				{
 					n = _sntprintf(Buf, sizeof(Buf), TEXT("Waiting..."));
 					if (n < 0 || n > sizeof(Buf)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 					}
 					Edit_Print_Log(Type, Buf);
 					Logging(Type, Buf);
@@ -2041,7 +2061,7 @@ void Set_Title_Thread(void* p)
 				{
 					n = _sntprintf(Buf, sizeof(Buf), TEXT("Connect!!!"));
 					if (n < 0 || n > sizeof(Buf)) {
-						printf("ERROR");						
+						(void*)printf("ERROR");						
 					}
 					_beginthread(Auto_Response_TCP, 0, (void*)sock);
 					Edit_Print_Log(Type, Buf);
@@ -2058,7 +2078,7 @@ void Set_Title_Thread(void* p)
 					Server_Acceptflag = Not_Use;
 					n = _sntprintf(Buf, sizeof(Buf), TEXT("TimeOut..."));
 					if (n < 0 || n > sizeof(Buf)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 					}
 					Edit_Print_Log(Type, Buf);
 					Logging(Type, Buf);
@@ -2080,7 +2100,7 @@ void Set_Title_Thread(void* p)
 						{
 							n = _sntprintf(Buf, sizeof(Buf), TEXT("Disconnect"));
 							if (n < 0 || n > sizeof(Buf)) {
-								printf("ERROR");
+								(void*)printf("ERROR");
 							
 							}
 							break;
@@ -2089,7 +2109,7 @@ void Set_Title_Thread(void* p)
 						{
 							n = _sntprintf(Buf, sizeof(Buf), TEXT("Cancel"));
 							if (n < 0 || n > sizeof(Buf)) {
-								printf("ERROR");
+								(void*)printf("ERROR");
 								
 							}
 							break;
@@ -2111,7 +2131,7 @@ void Set_Title_Thread(void* p)
 			EnableWindow(h_Button_Close, TRUE);
 			n = _sntprintf(Type, sizeof(Type), TEXT("RS232"));
 			if (n < 0 || n > sizeof(Type)) {
-				printf("ERROR");
+				(void*)printf("ERROR");
 				
 			}
 			if (RS232_Connectflag == Fail)
@@ -2121,7 +2141,7 @@ void Set_Title_Thread(void* p)
 				{
 					n = _sntprintf(Buf, sizeof(Buf), TEXT("Connect Fail..."));
 					if (n < 0 || n > sizeof(Buf)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 						
 					}
 					Edit_Print_Log(Type, Buf);
@@ -2136,7 +2156,7 @@ void Set_Title_Thread(void* p)
 				{
 					n = _sntprintf(Buf, sizeof(Buf), TEXT("Connect!!!"));
 					if (n < 0 || n > sizeof(Buf)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 						
 					}
 					Edit_Print_Log(Type, Buf);
@@ -2154,7 +2174,7 @@ void Set_Title_Thread(void* p)
 					gbEndSignal = TRUE;
 					n = _sntprintf(Buf, sizeof(Buf), TEXT("Disconnect"));
 					if (n < 0 || n > sizeof(Buf)) {
-						printf("ERROR");
+						(void*)printf("ERROR");
 						
 					}
 					Edit_Print_Log(Type, Buf);
